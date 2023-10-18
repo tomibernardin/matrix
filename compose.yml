@@ -115,7 +115,7 @@ services:
 #------------------------------ MEDIA SERVER ------------------------------
   plex:
     container_name: plex
-    image: plexinc/pms-docker
+    image: jaymoulin/plex
     restart: always
     environment:
       - TZ=${TZ}
@@ -124,7 +124,7 @@ services:
     volumes:
       - ${PLEX_CONFIG}:/config
       - ${PLEX_TEMP}:/transcode
-      - ${PLEX_MEDIA}:/data
+      - ${PLEX_MEDIA}:/media
 
   transmission:
     image: lscr.io/linuxserver/transmission:latest
