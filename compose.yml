@@ -1,0 +1,196 @@
+version: '3'
+services:
+#------------------------------- SMART HOME -------------------------------
+#  homeassistant:
+#    container_name: homeassistant
+#    image: "ghcr.io/home-assistant/home-assistant:stable"
+#    volumes:
+#      - ${HOMEASSISTANT_CONFIG}:/config
+#      - /etc/localtime:/etc/localtime:ro
+#    restart: always
+#    privileged: true
+#    network_mode: host
+
+#  db:
+#    container_name: mariadb
+#    image: mariadb
+#    restart: always
+#    environment:
+#      MARIADB_ROOT_PASSWORD: homeassistant
+#      MARIADB_DATABASE: homeassistant
+#      MARIADB_USER: homeassistant
+#      MARIADB_PASSWORD: homeassistant
+#    volumes:
+#      - ${MARIADB_DB}:/var/lib/mysql
+#    ports:
+#      - 3306:3306
+#    
+#  node-red:
+#    image: nodered/node-red:latest
+#    environment:
+#      - TZ=America/Argentina/Buenos_Aires
+#    ports:
+#      - "1880:1880"
+#    volumes:
+#      - ${NODERED_CONFIG}:/data
+#    restart: always
+
+#  duplicati:
+#    image: lscr.io/linuxserver/duplicati:latest
+#    container_name: duplicati
+#    environment:
+#      - PUID=1000
+#      - PGID=1000
+#      - TZ=America/Argentina/Buenos_Aires
+#    volumes:
+#      - ${DUPLICATI_CONFIG}:/config
+#      - ${DUPLICATI_BACKUPS}:/backups
+#      - ${DOCKER_MAIN_ROUTE}:/source
+#    ports:
+#      - 8200:8200
+#    restart: always
+
+#----------------------------- ADMINISTRATION -----------------------------
+  homer:
+    image: b4bz/homer:latest
+    volumes:
+      - ${HOMER_CONFIG}:/www/assets
+    ports:
+      - 9000:8080
+    restart: always
+    
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: filebrowser
+    volumes:
+      - ${DOCKER_MAIN_ROUTE}:/srv
+      - ${FILEBROWSER_DATABASE}:/database/filebrowser.db
+      - ${FILEBROWSER_CONFIG}:/config/settings.json
+    environment:
+      - PUID=${UID}
+      - PGID=${GID}
+    ports:
+      - "8090:80"
+    restart: always
+
+  budgetzero:
+    image: budgetzero/budgetzero:latest
+    container_name: budgetzero
+    ports:
+      - "8091:8080"
+
+#------------------------- NETWORK ADMINISTRATION -------------------------
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    restart: always
+    ports:
+      - '8000:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ${NGINXPM_CONFIG}:/data
+      - ${NGINXPM_ETC}:/etc/letsencrypt
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    # For DHCP it is recommended to remove these ports and instead add: network_mode: "host"
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      #- "67:67/udp" # Only required if you are using Pi-hole as your DHCP server
+      - "80:80/tcp"
+    environment:
+      TZ: 'America/Argentina/Buenos_Aires'
+      WEBPASSWORD: 'PASSWORD'
+    # Volumes store your data between container upgrades
+    volumes:
+      - ${PIHOLE_CONFIG}:/etc/pihole
+      - ${PIHOLE_DNSMASQ}:/etc/dnsmasq.d
+    #cap_add:
+      #- NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
+    restart: always
+
+#------------------------------ MEDIA SERVER ------------------------------
+  plex:
+    container_name: plex
+    image: plexinc/pms-docker
+    restart: always
+    environment:
+      - TZ=${TZ}
+      - PLEX_CLAIM=${PLEX_CLAIM}
+    network_mode: host
+    volumes:
+      - ${PLEX_CONFIG}:/config
+      - ${PLEX_TEMP}:/transcode
+      - ${PLEX_MEDIA}:/data
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - TRANSMISSION_WEB_HOME= #optional
+      - USER=admin
+      - PASS=123456
+      - WHITELIST= #optional
+      - PEERPORT= #optional
+      - HOST_WHITELIST= #optional
+    volumes:
+      - ${TRANSMISSION_CONFIG}:/config
+      - ${TRANSMISSION_DOWNLOADS}:/downloads
+      - ${TRANSMISSION_WATCH}:/watch
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    restart: always
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=${UID}
+      - PGID=${GID}
+      - TZ=${TZ}
+    volumes:
+      - ${SONARR_CONFIG}:/config
+      - ${PLEX_MEDIA}/anime:/anime
+      - ${PLEX_MEDIA}/series:/series
+      - ${TRANSMISSION_DOWNLOADS}:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=${UID}
+      - PGID=${GID}
+      - TZ=${TZ}
+    volumes:
+      - ${RADARR_CONFIG}:/config
+      - ${PLEX_MEDIA}/movies:/movies
+      - ${TRANSMISSION_DOWNLOADS}:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jackett
+    environment:
+      - PUID=${UID}
+      - PGID=${GID}
+      - TZ=${TZ}
+      - AUTO_UPDATE=true #optional
+    volumes:
+      - ${JACKETT_CONFIG}:/config
+      - ${TRANSMISSION_DOWNLOADS}:/downloads
+    ports:
+      - 9117:9117
+    restart: unless-stopped
