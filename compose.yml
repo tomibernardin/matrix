@@ -14,17 +14,23 @@ networks:
 
 services:
   #----------------------------- ADMINISTRATION -----------------------------
-  homer:
-    image: b4bz/homer:latest
-    container_name: homer
+  # Homepage replaces Homer — auto-discovers services via Docker labels
+  # and ships with widgets for *arr, Plex, Transmission, etc.
+  # See https://gethomepage.dev/ for label-based service config.
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
     networks: [matrix]
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:-*}
     volumes:
-      - ${HOMER_CONFIG}:/www/assets
+      - ${HOMEPAGE_CONFIG}:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
-      - "9000:8080"
+      - "9000:3000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
       interval: 30s
       timeout: 5s
       retries: 3
