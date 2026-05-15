@@ -1,0 +1,5 @@
+# Force LF line endings on shell scripts regardless of clone-time
+# core.autocrlf config — CRLF would break the shebang on Linux hosts.
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

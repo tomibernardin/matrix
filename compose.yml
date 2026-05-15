@@ -3,8 +3,8 @@ name: matrix
 # Shared defaults for the LinuxServer containers — anchored once,
 # referenced via `<<: *lsio` to keep PUID/PGID/TZ in sync everywhere.
 x-lsio-env: &lsio
-  PUID: ${UID:-1000}
-  PGID: ${GID:-1000}
+  PUID: ${PUID:-1000}
+  PGID: ${PGID:-1000}
   TZ: ${TZ:-UTC}
 
 networks:
@@ -21,6 +21,12 @@ services:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
     networks: [matrix]
+    # Run as the host user so writes into ${HOMEPAGE_CONFIG} land with the
+    # right ownership; add the host's docker GID as a supplementary group
+    # so the read-only docker.sock is accessible for service discovery.
+    user: "${PUID:-1000}:${PGID:-1000}"
+    group_add:
+      - "${DOCKER_GID:-999}"
     environment:
       HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:-*}
     volumes:
@@ -39,9 +45,9 @@ services:
     image: filebrowser/filebrowser:latest
     container_name: filebrowser
     networks: [matrix]
-    environment:
-      PUID: ${UID:-1000}
-      PGID: ${GID:-1000}
+    # filebrowser/filebrowser ignores PUID/PGID (that's a LinuxServer
+    # convention). It runs as root inside the container and writes via
+    # the kernel mount, so host ownership is honoured directly.
     volumes:
       - ${DOCKER_MAIN_ROUTE}:/srv
       - ${FILEBROWSER_DATABASE}:/database/filebrowser.db
