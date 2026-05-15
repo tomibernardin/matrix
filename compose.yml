@@ -105,11 +105,12 @@ services:
   # Plex uses host networking for client discovery (GDM, DLNA).
   # It cannot join the `matrix` bridge.
   plex:
-    image: jaymoulin/plex
+    image: lscr.io/linuxserver/plex:latest
     container_name: plex
     network_mode: host
     environment:
-      TZ: ${TZ:-UTC}
+      <<: *lsio
+      VERSION: docker
       PLEX_CLAIM: ${PLEX_CLAIM}
     volumes:
       - ${PLEX_CONFIG}:/config
