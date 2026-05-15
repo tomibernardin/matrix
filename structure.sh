@@ -1,19 +1,21 @@
 #!/bin/bash
-cd /home/tomas
-mkdir docker 
-#mkdir backup backup/duplicati
-cd docker
-#mkdir homeassistant homeassistant/config
-#mkdir mariadb mariadb/config
-#mkdir node-red node-red/config
-#mkdir duplicati duplicati/config
-mkdir homer homer/config
-mkdir filebrowser filebrowser/config filebrowser/database
-mkdir nginxpm nginxpm/config nginxpm/etc
-mkdir pihole pihole/config pihole/dnsmasq
-mkdir plex plex/config plex/temp plex/media plex/media/anime plex/media/movies plex/media/series plex/media/homevideos
-mkdir transmission transmission/config transmission/watch transmission/downloads transmission/downloads/complete transmission/downloads/incomplete
-mkdir sonarr sonarr/config radarr radarr/config
-mkdir jackett jackett/config
-echo 'Los directorios fueron actualizados.'
-cd /home/tomas
+# Create the directory tree expected by compose.yml under DOCKER_MAIN_ROUTE.
+# Idempotent — safe to re-run.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/.env"
+
+: "${DOCKER_MAIN_ROUTE:?DOCKER_MAIN_ROUTE must be set in .env}"
+
+mkdir -p "${DOCKER_MAIN_ROUTE}"/{homepage/config,filebrowser/{config,database},nginxpm/{config,etc},adguardhome/{work,conf},plex/{config,temp,media/{anime,movies,series,homevideos}},transmission/{config,watch,downloads/{complete,incomplete}},sonarr/config,radarr/config,jackett/config,bazarr/config,overseerr/config,prometheus/{config,data},grafana/data}
+
+# Seed Prometheus config from the repo if not present.
+if [[ ! -f "${DOCKER_MAIN_ROUTE}/prometheus/config/prometheus.yml" ]]; then
+    cp "${SCRIPT_DIR}/prometheus/prometheus.yml" \
+       "${DOCKER_MAIN_ROUTE}/prometheus/config/prometheus.yml"
+    echo "Sembrado prometheus.yml por defecto"
+fi
+
+echo "Directorios creados/verificados en ${DOCKER_MAIN_ROUTE}"
