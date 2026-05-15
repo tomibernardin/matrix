@@ -65,8 +65,10 @@ echo "================================================================"
 
 # Warn early about the classic AdGuard-vs-systemd-resolved port 53 clash.
 # We don't disable it automatically — that's a host-wide DNS change that
-# the operator should make consciously.
-if ss -tulpn 2>/dev/null | grep -qE ':53\b.*systemd-resolve'; then
+# the operator should make consciously. Skip silently if `ss` isn't
+# available yet (rare on real distros, but possible in minimal containers).
+if command -v ss >/dev/null \
+   && ss -tulpn 2>/dev/null | grep -qE ':53\b.*systemd-resolve'; then
     cat >&2 <<'WARN'
 WARNING: systemd-resolved is listening on port 53.
 AdGuard Home will fail to bind :53 until you free it. Typical fix:
@@ -196,10 +198,11 @@ echo ">>> [5/5] Applying ownership and permissions..."
 chown -R "${REAL_UID}:${REAL_GID}" "${DOCKER_MAIN_ROUTE}"
 chmod -R u=rwX,g=rwX,o= "${DOCKER_MAIN_ROUTE}"
 
-# Grafana's container runs as UID 472 internally.
+# Grafana's container runs as UID 472 (see USER grafana in grafana/grafana
+# Dockerfile). Pin both the dir owner and group so grafana.db is writable.
 chown -R 472:472 "${DOCKER_MAIN_ROUTE}/grafana/data"
 
-# Prometheus runs as UID 65534 (nobody).
+# Prometheus runs as UID 65534 (nobody) per prom/prometheus Dockerfile.
 chown -R 65534:65534 "${DOCKER_MAIN_ROUTE}/prometheus/data"
 # Keep prometheus.yml readable by the container.
 chown 65534:65534 "${DOCKER_MAIN_ROUTE}/prometheus/config/prometheus.yml"

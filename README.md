@@ -38,7 +38,7 @@ git clone https://github.com/tomibernardin/matrix.git && cd matrix
 ./setup.sh
 ```
 
-`setup.sh` is idempotent and auto-elevates with `sudo`. In one pass it:
+`setup.sh` is idempotent and auto-elevates with `sudo`. If you must run it directly as root, pass the target user via env — note that sudo's env sanitization means `sudo MATRIX_USER=alice …` won't work; invoke as `MATRIX_USER=alice bash setup.sh` instead. In one pass it:
 
 1. Installs Docker + utilities.
 2. Adds your user to the `docker` group.
