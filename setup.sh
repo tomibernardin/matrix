@@ -152,7 +152,7 @@ fi
 
 # Load .env so DOCKER_MAIN_ROUTE / paths are usable below.
 set -a
-# shellcheck disable=SC1091
+# shellcheck source=.env.example
 source "${ENV_FILE}"
 set +a
 
