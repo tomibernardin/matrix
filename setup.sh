@@ -63,6 +63,21 @@ echo "  Timezone:  ${TZ_DETECTED}"
 echo "  Repo:      ${SCRIPT_DIR}"
 echo "================================================================"
 
+# Warn early about the classic AdGuard-vs-systemd-resolved port 53 clash.
+# We don't disable it automatically — that's a host-wide DNS change that
+# the operator should make consciously.
+if ss -tulpn 2>/dev/null | grep -qE ':53\b.*systemd-resolve'; then
+    cat >&2 <<'WARN'
+WARNING: systemd-resolved is listening on port 53.
+AdGuard Home will fail to bind :53 until you free it. Typical fix:
+
+    sudo sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
+    sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+    sudo systemctl restart systemd-resolved
+
+WARN
+fi
+
 # ----------------------------------------------------------------------------
 # 1. Host packages and Docker.
 # ----------------------------------------------------------------------------
@@ -90,6 +105,14 @@ fi
 
 usermod -aG docker "${REAL_USER}"
 
+# Resolve the host docker group GID — required for non-root services
+# that need to read /var/run/docker.sock (e.g. Homepage discovery).
+DOCKER_GID="$(getent group docker | cut -d: -f3)"
+if [[ -z "${DOCKER_GID}" ]]; then
+    echo "ERROR: failed to resolve the 'docker' group GID." >&2
+    exit 1
+fi
+
 # ----------------------------------------------------------------------------
 # 2. Seed .env from .env.example.
 # ----------------------------------------------------------------------------
@@ -105,8 +128,9 @@ else
 
     # Substitute detected values.
     sed -i \
-        -e "s|^UID=.*|UID=${REAL_UID}|" \
-        -e "s|^GID=.*|GID=${REAL_GID}|" \
+        -e "s|^PUID=.*|PUID=${REAL_UID}|" \
+        -e "s|^PGID=.*|PGID=${REAL_GID}|" \
+        -e "s|^DOCKER_GID=.*|DOCKER_GID=${DOCKER_GID}|" \
         -e "s|^TZ=.*|TZ=${TZ_DETECTED}|" \
         -e "s|^DOCKER_MAIN_ROUTE=.*|DOCKER_MAIN_ROUTE=${DOCKER_MAIN_ROUTE_DEFAULT}|" \
         "${ENV_FILE}"
