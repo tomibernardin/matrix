@@ -31,21 +31,27 @@ Self-hosted home server stack orchestrated with Docker Compose. Bundles the serv
 
 ## Quick start
 
+On a fresh Linux host, clone the repo and run:
+
 ```bash
-# 1. Install Docker + utilities (idempotent).
-./install.sh
+git clone https://github.com/tomibernardin/matrix.git && cd matrix
+./setup.sh
+```
 
-# 2. Create the directory tree under DOCKER_MAIN_ROUTE.
-./structure.sh
+`setup.sh` is idempotent and auto-elevates with `sudo`. In one pass it:
 
-# 3. Copy the env template and fill it in.
-cp .env.example .env
-$EDITOR .env   # set UID, GID, TZ, DOCKER_MAIN_ROUTE, PLEX_CLAIM, passwords
+1. Installs Docker + utilities.
+2. Adds your user to the `docker` group.
+3. Generates `.env` from the template with auto-detected UID/GID/TZ and random secrets (Transmission password, Grafana admin password) — paths default to `${HOME}/docker`.
+4. Creates the directory tree.
+5. Seeds Prometheus config and Filebrowser stubs.
+6. Applies ownership/permissions (your user, 770; Grafana → UID 472; Prometheus → UID 65534).
 
-# 4. Apply ownership/permissions to the data tree.
-./permissions.sh
+Then:
 
-# 5. Bring the stack up.
+```bash
+$EDITOR .env             # optional: add PLEX_CLAIM, override any path/secret
+newgrp docker            # pick up the new group, or log out/in
 docker compose up -d
 ```
 
@@ -120,9 +126,7 @@ Media (`PLEX_MEDIA`) and torrent downloads are usually excluded — they're reco
 .
 ├── .env.example          # template for the local .env
 ├── compose.yml           # service definitions
-├── install.sh            # one-shot host bootstrap (docker, utilities)
-├── structure.sh          # creates ${DOCKER_MAIN_ROUTE} subdirectories
-├── permissions.sh        # chown/chmod the data tree
+├── setup.sh              # one-shot bootstrap (deps + tree + .env + permissions)
 ├── prometheus/
 │   └── prometheus.yml    # seed config copied into the volume on first run
 ├── .github/workflows/
