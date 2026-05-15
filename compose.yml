@@ -254,3 +254,22 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  #------------------------------ OPERATIONS --------------------------------
+  # Watchtower polls for new image tags and updates containers in place.
+  # Opt-in model: only containers labelled
+  # `com.centurylinklabs.watchtower.enable=true` are touched, so risky
+  # services (Plex, AdGuard) stay pinned by default.
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    networks: [matrix]
+    environment:
+      TZ: ${TZ:-UTC}
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_INCLUDE_RESTARTING: "true"
+      WATCHTOWER_SCHEDULE: "0 0 4 * * *"     # 04:00 local, daily
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
