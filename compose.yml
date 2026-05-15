@@ -76,27 +76,26 @@ services:
       timeout: 5s
       retries: 3
 
-  pihole:
-    image: pihole/pihole:latest
-    container_name: pihole
+  # AdGuard Home replaces Pi-hole — modern UI, built-in DoH/DoT/DoQ.
+  # First-time setup runs at http://host:3000; from then on the UI lives
+  # at http://host:80 (admin password set during setup, not via env).
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
     networks: [matrix]
-    # For DHCP, drop these ports and add: network_mode: host
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      # - "67:67/udp"   # only if Pi-hole is your DHCP server
       - "80:80/tcp"
-    environment:
-      TZ: ${TZ:-UTC}
-      WEBPASSWORD: ${PIHOLE_WEBPASSWORD}
+      - "3000:3000/tcp"      # initial setup wizard
+      - "853:853/tcp"        # DoT
+      - "784:784/udp"        # DoQ
     volumes:
-      - ${PIHOLE_CONFIG}:/etc/pihole
-      - ${PIHOLE_DNSMASQ}:/etc/dnsmasq.d
-    # cap_add:
-    #   - NET_ADMIN   # only if Pi-hole is your DHCP server
+      - ${ADGUARD_WORK}:/opt/adguardhome/work
+      - ${ADGUARD_CONF}:/opt/adguardhome/conf
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "dig", "+short", "+norecurse", "@127.0.0.1", "pi.hole"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
       timeout: 5s
       retries: 3

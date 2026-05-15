@@ -9,6 +9,6 @@ source "${SCRIPT_DIR}/.env"
 
 : "${DOCKER_MAIN_ROUTE:?DOCKER_MAIN_ROUTE must be set in .env}"
 
-mkdir -p "${DOCKER_MAIN_ROUTE}"/{homer/config,filebrowser/{config,database},nginxpm/{config,etc},pihole/{config,dnsmasq},plex/{config,temp,media/{anime,movies,series,homevideos}},transmission/{config,watch,downloads/{complete,incomplete}},sonarr/config,radarr/config,jackett/config}
+mkdir -p "${DOCKER_MAIN_ROUTE}"/{homer/config,filebrowser/{config,database},nginxpm/{config,etc},adguardhome/{work,conf},plex/{config,temp,media/{anime,movies,series,homevideos}},transmission/{config,watch,downloads/{complete,incomplete}},sonarr/config,radarr/config,jackett/config}
 
 echo "Directorios creados/verificados en ${DOCKER_MAIN_ROUTE}"
