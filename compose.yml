@@ -217,3 +217,40 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    networks: [matrix]
+    environment:
+      <<: *lsio
+    volumes:
+      - ${BAZARR_CONFIG}:/config
+      - ${PLEX_MEDIA}/movies:/movies
+      - ${PLEX_MEDIA}/series:/tv
+      - ${PLEX_MEDIA}/anime:/anime
+    ports:
+      - "6767:6767"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fSs", "http://localhost:6767/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    networks: [matrix]
+    environment:
+      <<: *lsio
+    volumes:
+      - ${OVERSEERR_CONFIG}:/config
+    ports:
+      - "5055:5055"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fSs", "http://localhost:5055/api/v1/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
