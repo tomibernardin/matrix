@@ -85,20 +85,16 @@ Plex, AdGuard, Prometheus and Grafana are left out of rotation by default becaus
 
 ### Homepage
 
-Service tiles are configured via Docker labels under `homepage.*` on each container, e.g.:
+Every service ships with `homepage.*` labels in `compose.yml`, so tiles auto-populate on first `docker compose up -d`. To make the tile links work from devices other than the host, set `HOMEPAGE_HOST` in `.env` to your LAN IP or FQDN.
 
-```yaml
-labels:
-  homepage.group: Media
-  homepage.name: Sonarr
-  homepage.icon: sonarr.png
-  homepage.href: http://host:8989
-  homepage.widget.type: sonarr
-  homepage.widget.url: http://sonarr:8989
-  homepage.widget.key: ${SONARR_API_KEY}
-```
+Live widget data (queue counts, library size, etc.) requires per-service credentials grabbed *after* first launch — paste them into the corresponding variables in `.env` and `docker compose up -d` to apply:
 
-See <https://gethomepage.dev/> for the full label reference.
+- `SONARR_API_KEY` / `RADARR_API_KEY` / `JACKETT_API_KEY` / `BAZARR_API_KEY` / `OVERSEERR_API_KEY` — Settings → General → API Key in each web UI.
+- `PLEX_TOKEN` — extract from a signed-in browser, see [plexopedia](https://www.plexopedia.com/plex-media-server/general/plex-token/).
+- `ADGUARD_USERNAME` / `ADGUARD_PASSWORD` — set during the AdGuard first-run wizard at `http://host:3000`.
+- `NPM_USERNAME` / `NPM_PASSWORD` — set on first login to Nginx Proxy Manager at `http://host:81`.
+
+Tiles still render without these; only the widget metrics need them. See <https://gethomepage.dev/> for the full label reference if you want to customize further.
 
 ### Observability
 
