@@ -8,7 +8,6 @@ Self-hosted home server stack orchestrated with Docker Compose. Bundles the serv
 | --- | --- | --- | --- |
 | Homepage | `ghcr.io/gethomepage/homepage` | `9000` | Service dashboard (auto-discovery via labels) |
 | FileBrowser | `filebrowser/filebrowser` | `8090` | Web file manager over the docker tree |
-| BudgetZero | `budgetzero/budgetzero` | `8091` | Personal budgeting |
 | Nginx Proxy Manager | `jc21/nginx-proxy-manager` | `8000`, `81`, `443` | Reverse proxy + Let's Encrypt |
 | AdGuard Home | `adguard/adguardhome` | `53`, `80`, `3000`, `853`, `784` | DNS + ad-block (DoH/DoT/DoQ) |
 | Plex | `lscr.io/linuxserver/plex` | host network | Media server |
