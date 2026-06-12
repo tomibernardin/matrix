@@ -67,20 +67,6 @@ services:
       homepage.href: http://${HOMEPAGE_HOST:-localhost}:8090
       homepage.description: Web file manager
 
-  budgetzero:
-    image: budgetzero/budgetzero:latest
-    container_name: budgetzero
-    networks: [matrix]
-    ports:
-      - "8091:8080"
-    restart: unless-stopped
-    labels:
-      homepage.group: Files
-      homepage.name: BudgetZero
-      homepage.icon: mdi-cash-multiple
-      homepage.href: http://${HOMEPAGE_HOST:-localhost}:8091
-      homepage.description: Personal budgeting
-
   #------------------------- NETWORK ADMINISTRATION -------------------------
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
