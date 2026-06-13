@@ -73,14 +73,33 @@ docker compose config                # validate compose.yml
 
 ### Watchtower
 
-Watchtower runs daily at 04:00 local. It is opt-in by label — add this to any service you want auto-updated:
+Watchtower runs daily at 04:00 local. It is opt-in by label: every `:latest`
+service in `compose.yml` already carries
 
 ```yaml
 labels:
   com.centurylinklabs.watchtower.enable: "true"
 ```
 
-Plex, AdGuard, Prometheus and Grafana are left out of rotation by default because their upgrades benefit from a manual review.
+so they auto-update in place. Plex, AdGuard, Prometheus and Grafana are pinned
+to exact tags and deliberately **lack** the label — their upgrades benefit from
+a manual review.
+
+### Updating pinned images
+
+The four pinned services don't auto-update. To upgrade one, bump its tag in
+`compose.yml` and pull just that service:
+
+```bash
+# e.g. Grafana
+$EDITOR compose.yml                       # change grafana/grafana:13.0.2 → new tag
+docker compose pull grafana && docker compose up -d grafana
+```
+
+Resolve the latest tags from each project's releases:
+Plex `linuxserver/docker-plex`, AdGuard `AdguardTeam/AdGuardHome`,
+Prometheus `prometheus/prometheus`, Grafana `grafana/grafana` (Grafana's Docker
+tag has no `v` prefix).
 
 ### Homepage
 

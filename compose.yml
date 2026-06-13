@@ -7,6 +7,12 @@ x-lsio-env: &lsio
   PGID: ${PGID:-1000}
   TZ: ${TZ:-UTC}
 
+# Shared healthcheck timings — merge with `<<: *hc` and a per-service test.
+x-healthcheck: &hc
+  interval: 30s
+  timeout: 5s
+  retries: 3
+
 networks:
   matrix:
     name: matrix
@@ -36,10 +42,10 @@ services:
       - "9000:3000"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   filebrowser:
     image: filebrowser/filebrowser:latest
@@ -56,11 +62,10 @@ services:
       - "8090:80"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "wget", "-qO-", "http://localhost/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
+      com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Files
       homepage.name: Filebrowser
       homepage.icon: filebrowser.png
@@ -81,11 +86,10 @@ services:
       - ${NGINXPM_ETC}:/etc/letsencrypt
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "/usr/bin/check-health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
+      com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Network
       homepage.name: Nginx Proxy Manager
       homepage.icon: nginx-proxy-manager.png
@@ -100,7 +104,8 @@ services:
   # First-time setup runs at http://host:3000; from then on the UI lives
   # at http://host:80 (admin password set during setup, not via env).
   adguardhome:
-    image: adguard/adguardhome:latest
+    # Pinned — manual-review upgrades; see README "Updating pinned images".
+    image: adguard/adguardhome:v0.107.77
     container_name: adguardhome
     networks: [matrix]
     ports:
@@ -115,10 +120,8 @@ services:
       - ${ADGUARD_CONF}:/opt/adguardhome/conf
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
       homepage.group: Network
       homepage.name: AdGuard Home
@@ -134,7 +137,8 @@ services:
   # Plex uses host networking for client discovery (GDM, DLNA).
   # It cannot join the `matrix` bridge.
   plex:
-    image: lscr.io/linuxserver/plex:latest
+    # Pinned — manual-review upgrades; see README "Updating pinned images".
+    image: lscr.io/linuxserver/plex:1.43.2.10687-563d026ea-ls308
     container_name: plex
     network_mode: host
     environment:
@@ -167,12 +171,8 @@ services:
     networks: [matrix]
     environment:
       <<: *lsio
-      TRANSMISSION_WEB_HOME:
       USER: ${TRANSMISSION_USER}
       PASS: ${TRANSMISSION_PASS}
-      WHITELIST:
-      PEERPORT:
-      HOST_WHITELIST:
     volumes:
       - ${TRANSMISSION_CONFIG}:/config
       - ${TRANSMISSION_DOWNLOADS}:/downloads
@@ -183,16 +183,15 @@ services:
       - "51413:51413/udp"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "curl", "-fSs", "http://localhost:9091/transmission/web/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     deploy:
       resources:
         limits:
           cpus: "2.0"
           memory: 1g
     labels:
+      com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Automation
       homepage.name: Transmission
       homepage.icon: transmission.png
@@ -218,11 +217,10 @@ services:
       - "8989:8989"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "curl", "-fSs", "http://localhost:8989/ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
+      com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Automation
       homepage.name: Sonarr
       homepage.icon: sonarr.png
@@ -246,11 +244,10 @@ services:
       - "7878:7878"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "curl", "-fSs", "http://localhost:7878/ping"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
+      com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Automation
       homepage.name: Radarr
       homepage.icon: radarr.png
@@ -274,11 +271,10 @@ services:
       - "9117:9117"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "curl", "-fSs", "http://localhost:9117/UI/Dashboard"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
+      com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Automation
       homepage.name: Jackett
       homepage.icon: jackett.png
@@ -303,11 +299,10 @@ services:
       - "6767:6767"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "curl", "-fSs", "http://localhost:6767/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
+      com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Media
       homepage.name: Bazarr
       homepage.icon: bazarr.png
@@ -329,11 +324,10 @@ services:
       - "5055:5055"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "curl", "-fSs", "http://localhost:5055/api/v1/status"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
+      com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Media
       homepage.name: Overseerr
       homepage.icon: overseerr.png
@@ -361,6 +355,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
+    # Watchtower updates itself too.
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   #---------------------------- OBSERVABILITY -------------------------------
   # cAdvisor exposes per-container CPU/mem/IO metrics on :8082.
@@ -383,11 +380,10 @@ services:
       - "8082:8080"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
+      com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Operations
       homepage.name: cAdvisor
       homepage.icon: mdi-chart-line
@@ -395,7 +391,8 @@ services:
       homepage.description: Container metrics
 
   prometheus:
-    image: prom/prometheus:latest
+    # Pinned — manual-review upgrades; see README "Updating pinned images".
+    image: prom/prometheus:v3.12.0
     container_name: prometheus
     networks: [matrix]
     command:
@@ -409,10 +406,8 @@ services:
       - "9090:9090"
     restart: unless-stopped
     healthcheck:
+      <<: *hc
       test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
       homepage.group: Operations
       homepage.name: Prometheus
@@ -423,7 +418,8 @@ services:
       homepage.widget.url: http://prometheus:9090
 
   grafana:
-    image: grafana/grafana:latest
+    # Pinned — manual-review upgrades; see README "Updating pinned images".
+    image: grafana/grafana:13.0.2
     container_name: grafana
     networks: [matrix]
     environment:
@@ -437,10 +433,8 @@ services:
     depends_on:
       - prometheus
     healthcheck:
+      <<: *hc
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
     labels:
       homepage.group: Operations
       homepage.name: Grafana
