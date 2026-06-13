@@ -122,17 +122,51 @@ Grafana lives at `http://host:3001`, Prometheus at `http://host:9090`, cAdvisor 
 2. Add Prometheus as a data source (`http://prometheus:9090`).
 3. Import dashboard ID **14282** (Docker / cAdvisor) for a per-container overview.
 
-## Backup
+## Backup & restore
 
-The data that matters lives under `${DOCKER_MAIN_ROUTE}`. Stop the stack first to avoid mid-write corruption of SQLite/TSDB files (`filebrowser.db`, AdGuard's DB, Prometheus TSDB):
+`setup.sh` installs a root cron job (`/etc/cron.d/matrix-backup`) that runs
+[`backup.sh`](backup.sh) nightly at 05:30: it stops the stack (~1 min), tars
+`${DOCKER_MAIN_ROUTE}` — excluding Plex media, Transmission downloads and the
+Prometheus TSDB, all recoverable — snapshots `.env` alongside, restarts the
+stack, and keeps the newest 14 archives in `${BACKUP_DIR}`.
+
+Run one manually any time: `sudo ./backup.sh`
+
+> `${BACKUP_DIR}` should live on a different disk than `${DOCKER_MAIN_ROUTE}`
+> if you can. A backup on the same dying disk is not a backup.
+
+### Restore (tested runbook)
+
+On a fresh host (or after wiping a broken tree):
 
 ```bash
-docker compose down
-sudo tar -C "$(dirname "$DOCKER_MAIN_ROUTE")" -czf matrix-backup-$(date +%F).tar.gz "$(basename "$DOCKER_MAIN_ROUTE")"
-docker compose up -d
+# 1. Clone and bootstrap (installs Docker, creates the tree, sets permissions).
+git clone https://github.com/tomibernardin/matrix.git && cd matrix
+./setup.sh
+
+# 2. Stop the (empty) stack if it was started.
+docker compose stop
+
+# 3. Restore the .env snapshot — paths and secrets travel with the backup.
+install -m 600 /path/to/backups/env-<STAMP> .env
+
+# 4. Unpack the archive over the data tree. DOCKER_MAIN_ROUTE comes from
+#    the restored .env; the tar contains the tree's basename (e.g. `docker/`).
+source .env
+sudo tar -xzf /path/to/backups/matrix-<STAMP>.tar.gz -C "$(dirname "$DOCKER_MAIN_ROUTE")"
+
+# 5. Re-apply ownership/permissions (setup.sh is idempotent and will not
+#    touch the restored .env or data, only fix perms and re-seed configs).
+./setup.sh
+
+# 6. Bring everything up.
+docker compose up -d && docker compose ps
 ```
 
-Media (`PLEX_MEDIA`) and torrent downloads are usually excluded — they're recoverable from sources.
+Expected result: every service reports healthy and finds its old state —
+*arr libraries, NPM proxy hosts and certs, AdGuard config, Grafana dashboards.
+Plex media files are NOT in the archive; re-point or re-copy your media into
+`${PLEX_MEDIA}` (the library metadata survives in `plex/config`).
 
 ## Layout
 

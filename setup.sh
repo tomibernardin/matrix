@@ -84,7 +84,7 @@ fi
 # 1. Host packages and Docker.
 # ----------------------------------------------------------------------------
 echo
-echo ">>> [1/5] Installing host packages..."
+echo ">>> [1/6] Installing host packages..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq \
@@ -119,7 +119,7 @@ fi
 # 2. Seed .env from .env.example.
 # ----------------------------------------------------------------------------
 echo
-echo ">>> [2/5] Generating .env (if absent)..."
+echo ">>> [2/6] Generating .env (if absent)..."
 ENV_FILE="${SCRIPT_DIR}/.env"
 DOCKER_MAIN_ROUTE_DEFAULT="${REAL_HOME}/docker"
 
@@ -135,6 +135,7 @@ else
         -e "s|^DOCKER_GID=.*|DOCKER_GID=${DOCKER_GID}|" \
         -e "s|^TZ=.*|TZ=${TZ_DETECTED}|" \
         -e "s|^DOCKER_MAIN_ROUTE=.*|DOCKER_MAIN_ROUTE=${DOCKER_MAIN_ROUTE_DEFAULT}|" \
+        -e "s|^BACKUP_DIR=.*|BACKUP_DIR=${REAL_HOME}/matrix-backups|" \
         "${ENV_FILE}"
 
     # Generate random secrets (URL/shell-safe).
@@ -164,14 +165,14 @@ set +a
 # 3. Directory structure.
 # ----------------------------------------------------------------------------
 echo
-echo ">>> [3/5] Creating directory tree under ${DOCKER_MAIN_ROUTE}..."
+echo ">>> [3/6] Creating directory tree under ${DOCKER_MAIN_ROUTE}..."
 mkdir -p "${DOCKER_MAIN_ROUTE}"/{homepage/config,filebrowser/{config,database},nginxpm/{config,etc},adguardhome/{work,conf},plex/{config,temp,media/{anime,movies,series,homevideos}},transmission/{config,watch,downloads/{complete,incomplete}},sonarr/config,radarr/config,jackett/config,bazarr/config,overseerr/config,prometheus/{config,data},grafana/data}
 
 # ----------------------------------------------------------------------------
 # 4. Seed config files that bind-mount targets expect as actual files.
 # ----------------------------------------------------------------------------
 echo
-echo ">>> [4/5] Seeding initial config files..."
+echo ">>> [4/6] Seeding initial config files..."
 
 # Prometheus needs its config at first start; the sample is shipped in-repo.
 PROM_CFG="${DOCKER_MAIN_ROUTE}/prometheus/config/prometheus.yml"
@@ -192,7 +193,7 @@ FB_CFG="${FILEBROWSER_CONFIG}"
 # 5. Ownership and permissions.
 # ----------------------------------------------------------------------------
 echo
-echo ">>> [5/5] Applying ownership and permissions..."
+echo ">>> [5/6] Applying ownership and permissions..."
 
 # Default: everything owned by the invoking user, group-writable, world none.
 chown -R "${REAL_UID}:${REAL_GID}" "${DOCKER_MAIN_ROUTE}"
@@ -206,6 +207,18 @@ chown -R 472:472 "${DOCKER_MAIN_ROUTE}/grafana/data"
 chown -R 65534:65534 "${DOCKER_MAIN_ROUTE}/prometheus/data"
 # Keep prometheus.yml readable by the container.
 chown 65534:65534 "${DOCKER_MAIN_ROUTE}/prometheus/config/prometheus.yml"
+
+# ----------------------------------------------------------------------------
+# 6. Nightly backup cron job.
+# ----------------------------------------------------------------------------
+echo
+echo ">>> [6/6] Installing nightly backup cron job..."
+cat > /etc/cron.d/matrix-backup <<CRON
+# Nightly Matrix backup — 05:30, after Watchtower's 04:00 window.
+# Installed by setup.sh; edit/remove freely.
+30 5 * * * root ${SCRIPT_DIR}/backup.sh >> /var/log/matrix-backup.log 2>&1
+CRON
+chmod 644 /etc/cron.d/matrix-backup
 
 # ----------------------------------------------------------------------------
 # Done.
@@ -239,5 +252,8 @@ cat <<MSG
     4. First-time per-service setup:
          - AdGuard wizard:  http://<host>:3000
          - Grafana login:   http://<host>:3001  (admin / GRAFANA_ADMIN_PASSWORD)
+
+  A nightly backup runs at 05:30 (/etc/cron.d/matrix-backup → ${BACKUP_DIR}).
+  Run one now with: sudo ${SCRIPT_DIR}/backup.sh
 ================================================================
 MSG
