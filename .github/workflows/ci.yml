@@ -23,3 +23,10 @@ jobs:
         run: cp .env.example .env
       - name: Validate compose.yml
         run: docker compose config --quiet
+
+  env-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check compose.yml vs .env.example drift
+        run: bash scripts/check-env-drift.sh
