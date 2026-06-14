@@ -1,0 +1,27 @@
+# Alert rules — surfaced in the Prometheus UI (/alerts) and Grafana.
+# There is intentionally no Alertmanager: no notification channel has been
+# chosen yet. Add one before wiring receivers.
+groups:
+  - name: host
+    rules:
+      - alert: HostDiskAlmostFull
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) < 0.15
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: "Disk {{ $labels.mountpoint }} below 15% free"
+      - alert: HostOutOfMemory
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.10
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Less than 10% memory available"
+  - name: containers
+    rules:
+      - alert: ContainerGone
+        expr: time() - container_last_seen{name!=""} > 300
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "Container {{ $labels.name }} not seen for 5m"

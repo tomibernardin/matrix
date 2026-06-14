@@ -19,6 +19,7 @@ Self-hosted home server stack orchestrated with Docker Compose. Bundles the serv
 | Overseerr | `lscr.io/linuxserver/overseerr` | `5055` | Plex content requests |
 | Watchtower | `containrrr/watchtower` | — | Image auto-update (opt-in via label) |
 | cAdvisor | `gcr.io/cadvisor/cadvisor` | `8082` | Per-container metrics |
+| node-exporter | `prom/node-exporter` | — | Host metrics (disk, mem, cpu) |
 | Prometheus | `prom/prometheus` | `9090` | Metrics TSDB |
 | Grafana | `grafana/grafana` | `3001` | Metrics visualization |
 
@@ -116,11 +117,14 @@ Tiles still render without these; only the widget metrics need them. See <https:
 
 ### Observability
 
-Grafana lives at `http://host:3001`, Prometheus at `http://host:9090`, cAdvisor at `http://host:8082`. On first launch:
+Grafana lives at `http://host:3001`, Prometheus at `http://host:9090`, cAdvisor at `http://host:8082`. Prometheus scrapes itself, cAdvisor (per-container metrics) and node-exporter (host disk/mem/cpu).
 
-1. Log in to Grafana (`admin` / `GRAFANA_ADMIN_PASSWORD`).
-2. Add Prometheus as a data source (`http://prometheus:9090`).
-3. Import dashboard ID **14282** (Docker / cAdvisor) for a per-container overview.
+Everything is provisioned as code, so first launch is just a login:
+
+1. Log in to Grafana (`admin` / `GRAFANA_ADMIN_PASSWORD`). The Prometheus datasource and the "Docker / cAdvisor" dashboard (Grafana ID 14282) are already wired up via `grafana/provisioning/`.
+2. Alert rules live in `prometheus/rules.yml` and show up under Prometheus → **Alerts** (`http://host:9090/alerts`): disk <15% free, memory <10% available, container unseen for 5m. There is **no Alertmanager** — no notification channel has been chosen — so alerts are visible but not routed anywhere. Add Alertmanager + a receiver before relying on them for paging.
+
+> All three configs (`prometheus.yml`, `rules.yml`, Grafana provisioning) are repo-owned. `setup.sh` re-copies them into the data tree on every run, so edit them in the repo, `git pull`, re-run `./setup.sh`, and `docker compose up -d`.
 
 ## Backup & restore
 

@@ -390,6 +390,23 @@ services:
       homepage.href: http://${HOMEPAGE_HOST:-localhost}:8082
       homepage.description: Container metrics
 
+  # node-exporter exposes host-level metrics (disk, mem, cpu, fs). It joins
+  # the bridge so Prometheus can scrape it by name; pid+rootfs mounts give it
+  # the host view. No published port (scraped over the internal network) and
+  # no healthcheck (the image has no wget/curl; Prometheus's scrape is the check).
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    networks: [matrix]
+    pid: host
+    command:
+      - --path.rootfs=/rootfs
+    volumes:
+      - /:/rootfs:ro
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
   prometheus:
     # Pinned — manual-review upgrades; see README "Updating pinned images".
     image: prom/prometheus:v3.12.0
@@ -401,6 +418,7 @@ services:
       - --storage.tsdb.path=/prometheus
     volumes:
       - ${PROMETHEUS_CONFIG}/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${PROMETHEUS_CONFIG}/rules.yml:/etc/prometheus/rules.yml:ro
       - ${PROMETHEUS_DATA}:/prometheus
     ports:
       - "9090:9090"
@@ -427,6 +445,7 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - ${GRAFANA_DATA}:/var/lib/grafana
+      - ${GRAFANA_PROVISIONING}:/etc/grafana/provisioning:ro
     ports:
       - "3001:3000"
     restart: unless-stopped

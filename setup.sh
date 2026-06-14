@@ -166,7 +166,7 @@ set +a
 # ----------------------------------------------------------------------------
 echo
 echo ">>> [3/6] Creating directory tree under ${DOCKER_MAIN_ROUTE}..."
-mkdir -p "${DOCKER_MAIN_ROUTE}"/{homepage/config,filebrowser/{config,database},nginxpm/{config,etc},adguardhome/{work,conf},plex/{config,temp,media/{anime,movies,series,homevideos}},transmission/{config,watch,downloads/{complete,incomplete}},sonarr/config,radarr/config,jackett/config,bazarr/config,overseerr/config,prometheus/{config,data},grafana/data}
+mkdir -p "${DOCKER_MAIN_ROUTE}"/{homepage/config,filebrowser/{config,database},nginxpm/{config,etc},adguardhome/{work,conf},plex/{config,temp,media/{anime,movies,series,homevideos}},transmission/{config,watch,downloads/{complete,incomplete}},sonarr/config,radarr/config,jackett/config,bazarr/config,overseerr/config,prometheus/{config,data},grafana/{data,provisioning}}
 
 # ----------------------------------------------------------------------------
 # 4. Seed config files that bind-mount targets expect as actual files.
@@ -174,12 +174,12 @@ mkdir -p "${DOCKER_MAIN_ROUTE}"/{homepage/config,filebrowser/{config,database},n
 echo
 echo ">>> [4/6] Seeding initial config files..."
 
-# Prometheus needs its config at first start; the sample is shipped in-repo.
-PROM_CFG="${DOCKER_MAIN_ROUTE}/prometheus/config/prometheus.yml"
-if [[ ! -f "${PROM_CFG}" ]]; then
-    cp "${SCRIPT_DIR}/prometheus/prometheus.yml" "${PROM_CFG}"
-    echo ">>> Seeded ${PROM_CFG}"
-fi
+# Prometheus + Grafana configs are repo-owned: re-copied on every run so the
+# repo stays the source of truth. Data dirs are never touched.
+cp -f "${SCRIPT_DIR}/prometheus/prometheus.yml" "${DOCKER_MAIN_ROUTE}/prometheus/config/prometheus.yml"
+cp -f "${SCRIPT_DIR}/prometheus/rules.yml"      "${DOCKER_MAIN_ROUTE}/prometheus/config/rules.yml"
+cp -rf "${SCRIPT_DIR}/grafana/provisioning/."   "${DOCKER_MAIN_ROUTE}/grafana/provisioning/"
+echo ">>> Synced Prometheus + Grafana configs from repo."
 
 # Filebrowser bind-mounts its db and settings.json as files. If the host
 # paths don't exist yet, Docker would create them as directories and
@@ -200,13 +200,15 @@ chown -R "${REAL_UID}:${REAL_GID}" "${DOCKER_MAIN_ROUTE}"
 chmod -R u=rwX,g=rwX,o= "${DOCKER_MAIN_ROUTE}"
 
 # Grafana's container runs as UID 472 (see USER grafana in grafana/grafana
-# Dockerfile). Pin both the dir owner and group so grafana.db is writable.
-chown -R 472:472 "${DOCKER_MAIN_ROUTE}/grafana/data"
+# Dockerfile). Pin the whole grafana tree (data + provisioning) so it can
+# read its provisioned datasource/dashboards and write grafana.db.
+chown -R 472:472 "${DOCKER_MAIN_ROUTE}/grafana"
 
 # Prometheus runs as UID 65534 (nobody) per prom/prometheus Dockerfile.
 chown -R 65534:65534 "${DOCKER_MAIN_ROUTE}/prometheus/data"
-# Keep prometheus.yml readable by the container.
+# Keep its configs readable by the container.
 chown 65534:65534 "${DOCKER_MAIN_ROUTE}/prometheus/config/prometheus.yml"
+chown 65534:65534 "${DOCKER_MAIN_ROUTE}/prometheus/config/rules.yml"
 
 # ----------------------------------------------------------------------------
 # 6. Nightly backup cron job.
