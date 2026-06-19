@@ -8,8 +8,8 @@ Self-hosted home server stack orchestrated with Docker Compose. Bundles the serv
 | --- | --- | --- | --- |
 | Homepage | `ghcr.io/gethomepage/homepage` | `9000` | Service dashboard (auto-discovery via labels) |
 | FileBrowser | `filebrowser/filebrowser` | `8090` | Web file manager over the docker tree |
-| Nginx Proxy Manager | `jc21/nginx-proxy-manager` | `8000`, `81`, `443` | Reverse proxy + Let's Encrypt |
-| AdGuard Home | `adguard/adguardhome` | `53`, `80`, `3000`, `853`, `784` | DNS + ad-block (DoH/DoT/DoQ) |
+| Nginx Proxy Manager | `jc21/nginx-proxy-manager` | `80`, `81`, `443` | Reverse proxy + Let's Encrypt (single entry point) |
+| AdGuard Home | `adguard/adguardhome` | `53`, `8083`, `3000`, `853`, `784` | DNS + ad-block (DoH/DoT/DoQ) |
 | Plex | `lscr.io/linuxserver/plex` | host network | Media server |
 | Transmission | `lscr.io/linuxserver/transmission` | `9091`, `51413` | Torrent client |
 | Sonarr | `lscr.io/linuxserver/sonarr` | `8989` | TV automation |
@@ -125,6 +125,28 @@ Everything is provisioned as code, so first launch is just a login:
 2. Alert rules live in `prometheus/rules.yml` and show up under Prometheus → **Alerts** (`http://host:9090/alerts`): disk <15% free, memory <10% available, container unseen for 5m. There is **no Alertmanager** — no notification channel has been chosen — so alerts are visible but not routed anywhere. Add Alertmanager + a receiver before relying on them for paging.
 
 > All three configs (`prometheus.yml`, `rules.yml`, Grafana provisioning) are repo-owned. `setup.sh` re-copies them into the data tree on every run, so edit them in the repo, `git pull`, re-run `./setup.sh`, and `docker compose up -d`.
+
+### Reverse proxy (recommended setup)
+
+Nginx Proxy Manager owns the host's `:80`/`:443`; AdGuard's admin UI moved to `:8083`. The direct `host:port` mappings are **still open on purpose** (reversible transition) — closing them (binding to `127.0.0.1`) is an optional later step once the proxy is validated. These steps are manual (web UIs):
+
+1. **AdGuard** (`http://host:8083`) → Filters → DNS rewrites → add `*.matrix.lan` → the server's LAN IP. (So `*.matrix.lan` resolves to the box for any device using AdGuard as its DNS.)
+2. **NPM** (`http://host:81`) → Proxy Hosts → add one entry per service (scheme `http`, the internal container name + port):
+
+   | Domain | Forward to |
+   | --- | --- |
+   | `home.matrix.lan` | `homepage:3000` |
+   | `files.matrix.lan` | `filebrowser:80` |
+   | `adguard.matrix.lan` | `adguardhome:80` |
+   | `sonarr.matrix.lan` | `sonarr:8989` |
+   | `radarr.matrix.lan` | `radarr:7878` |
+   | `bazarr.matrix.lan` | `bazarr:6767` |
+   | `requests.matrix.lan` | `overseerr:5055` |
+   | `torrent.matrix.lan` | `transmission:9091` |
+   | `grafana.matrix.lan` | `grafana:3000` |
+   | `prometheus.matrix.lan` | `prometheus:9090` |
+
+NPM reaches every service by container name because they all share the `matrix` bridge network.
 
 ## Backup & restore
 
