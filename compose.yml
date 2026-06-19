@@ -77,8 +77,9 @@ services:
     image: jc21/nginx-proxy-manager:latest
     container_name: nginx-proxy-manager
     networks: [matrix]
+    # NPM owns the host's HTTP/HTTPS ports — it's the single entry point.
     ports:
-      - "8000:80"
+      - "80:80"
       - "81:81"
       - "443:443"
     volumes:
@@ -101,8 +102,9 @@ services:
       homepage.widget.password: ${NPM_PASSWORD}
 
   # AdGuard Home replaces Pi-hole — modern UI, built-in DoH/DoT/DoQ.
-  # First-time setup runs at http://host:3000; from then on the UI lives
-  # at http://host:80 (admin password set during setup, not via env).
+  # First-time setup runs at http://host:3000. Its admin UI is on host :8083
+  # (host :80 belongs to NPM, the reverse proxy); :80 inside the container
+  # is unchanged, so the homepage.widget.url stays http://adguardhome:80.
   adguardhome:
     # Pinned — manual-review upgrades; see README "Updating pinned images".
     image: adguard/adguardhome:v0.107.77
@@ -111,7 +113,7 @@ services:
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "80:80/tcp"
+      - "8083:80/tcp"        # admin UI (host :80 is NPM's)
       - "3000:3000/tcp"      # initial setup wizard
       - "853:853/tcp"        # DoT
       - "784:784/udp"        # DoQ
@@ -126,7 +128,7 @@ services:
       homepage.group: Network
       homepage.name: AdGuard Home
       homepage.icon: adguard-home.png
-      homepage.href: http://${HOMEPAGE_HOST:-localhost}/
+      homepage.href: http://${HOMEPAGE_HOST:-localhost}:8083/
       homepage.description: DNS + ad-block
       homepage.widget.type: adguard
       homepage.widget.url: http://adguardhome:80
