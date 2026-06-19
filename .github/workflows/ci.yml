@@ -35,6 +35,11 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
+    # The ubuntu image makes GitHub default `run` steps to `sh` (dash),
+    # which rejects `set -o pipefail`. Force bash for every step here.
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - name: Run setup.sh as root with MATRIX_USER
