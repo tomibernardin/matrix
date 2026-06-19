@@ -166,7 +166,7 @@ set +a
 # ----------------------------------------------------------------------------
 echo
 echo ">>> [3/6] Creating directory tree under ${DOCKER_MAIN_ROUTE}..."
-mkdir -p "${DOCKER_MAIN_ROUTE}"/{homepage/config,filebrowser/{config,database},nginxpm/{config,etc},adguardhome/{work,conf},plex/{config,temp,media/{anime,movies,series,homevideos}},transmission/{config,watch,downloads/{complete,incomplete}},sonarr/config,radarr/config,jackett/config,bazarr/config,overseerr/config,prometheus/{config,data},grafana/{data,provisioning}}
+mkdir -p "${DOCKER_MAIN_ROUTE}"/{homepage/config,filebrowser/{config,database},nginxpm/{config,etc},adguardhome/{work,conf},plex/{config,temp,media/{anime,movies,series,homevideos}},transmission/{config,watch,downloads/{complete,incomplete}},sonarr/config,radarr/config,prowlarr/config,bazarr/config,overseerr/config,prometheus/{config,data},grafana/{data,provisioning}}
 
 # ----------------------------------------------------------------------------
 # 4. Seed config files that bind-mount targets expect as actual files.
