@@ -2,6 +2,11 @@
 
 Self-hosted home server stack orchestrated with Docker Compose. Bundles the services I run on a single Linux host: a media library (Plex + *arr suite + Transmission + Bazarr + Overseerr), DNS/ad-block (AdGuard Home), reverse proxy (Nginx Proxy Manager), dashboard (Homepage), automatic updates (Watchtower), and an observability stack (cAdvisor + Prometheus + Grafana).
 
+> **📖 Full documentation lives in [`docs/`](docs/README.md).** This README is the
+> quick reference. For depth see: [Architecture](docs/architecture.md) ·
+> [Deployment](docs/deployment.md) · [User guide (first-run setup)](docs/user-guide.md) ·
+> [Operations](docs/operations.md) · [Configuration reference](docs/configuration.md).
+
 ## Services
 
 | Service | Image | Host port | Purpose |
@@ -198,12 +203,18 @@ Plex media files are NOT in the archive; re-point or re-copy your media into
 
 ```
 .
-├── .env.example          # template for the local .env
-├── compose.yml           # service definitions
-├── setup.sh              # one-shot bootstrap (deps + tree + .env + permissions)
+├── compose.yml                 # service definitions (source of truth)
+├── .env.example                # template for the local .env
+├── setup.sh                    # one-shot bootstrap (deps + tree + .env + perms + cron)
+├── backup.sh                   # nightly cold backup (cron-installed by setup.sh)
 ├── prometheus/
-│   └── prometheus.yml    # seed config copied into the volume on first run
+│   ├── prometheus.yml          # scrape config (repo-owned, synced into the tree)
+│   └── rules.yml               # alert rules (repo-owned)
+├── grafana/provisioning/       # datasource + dashboard (repo-owned)
+├── scripts/
+│   └── check-env-drift.sh      # CI guard: compose vars ⊆ .env.example
 ├── .github/workflows/
-│   └── ci.yml            # shellcheck + docker compose config
+│   └── ci.yml                  # shellcheck, compose-validate, env-drift, setup-smoke
+├── docs/                       # full documentation (see docs/README.md)
 └── README.md
 ```
