@@ -259,32 +259,32 @@ services:
       homepage.widget.url: http://radarr:7878
       homepage.widget.key: ${RADARR_API_KEY}
 
-  jackett:
-    image: lscr.io/linuxserver/jackett:latest
-    container_name: jackett
+  # Prowlarr supersedes Jackett: indexers are defined once and pushed to
+  # Sonarr/Radarr via its Apps sync, instead of being wired per-app.
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
     networks: [matrix]
     environment:
       <<: *lsio
-      AUTO_UPDATE: "true"
     volumes:
-      - ${JACKETT_CONFIG}:/config
-      - ${TRANSMISSION_DOWNLOADS}:/downloads
+      - ${PROWLARR_CONFIG}:/config
     ports:
-      - "9117:9117"
+      - "9696:9696"
     restart: unless-stopped
     healthcheck:
       <<: *hc
-      test: ["CMD", "curl", "-fSs", "http://localhost:9117/UI/Dashboard"]
+      test: ["CMD", "curl", "-fSs", "http://localhost:9696/ping"]
     labels:
       com.centurylinklabs.watchtower.enable: "true"
       homepage.group: Automation
-      homepage.name: Jackett
-      homepage.icon: jackett.png
-      homepage.href: http://${HOMEPAGE_HOST:-localhost}:9117
-      homepage.description: Indexer aggregator
-      homepage.widget.type: jackett
-      homepage.widget.url: http://jackett:9117
-      homepage.widget.key: ${JACKETT_API_KEY}
+      homepage.name: Prowlarr
+      homepage.icon: prowlarr.png
+      homepage.href: http://${HOMEPAGE_HOST:-localhost}:9696
+      homepage.description: Indexer manager
+      homepage.widget.type: prowlarr
+      homepage.widget.url: http://prowlarr:9696
+      homepage.widget.key: ${PROWLARR_API_KEY}
 
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest

@@ -14,7 +14,7 @@ Self-hosted home server stack orchestrated with Docker Compose. Bundles the serv
 | Transmission | `lscr.io/linuxserver/transmission` | `9091`, `51413` | Torrent client |
 | Sonarr | `lscr.io/linuxserver/sonarr` | `8989` | TV automation |
 | Radarr | `lscr.io/linuxserver/radarr` | `7878` | Movie automation |
-| Jackett | `lscr.io/linuxserver/jackett` | `9117` | Indexer aggregator |
+| Prowlarr | `lscr.io/linuxserver/prowlarr` | `9696` | Indexer manager (syncs to *arr) |
 | Bazarr | `lscr.io/linuxserver/bazarr` | `6767` | Subtitle automation |
 | Overseerr | `lscr.io/linuxserver/overseerr` | `5055` | Plex content requests |
 | Watchtower | `containrrr/watchtower` | — | Image auto-update (opt-in via label) |
@@ -108,7 +108,7 @@ Every service ships with `homepage.*` labels in `compose.yml`, so tiles auto-pop
 
 Live widget data (queue counts, library size, etc.) requires per-service credentials grabbed *after* first launch — paste them into the corresponding variables in `.env` and `docker compose up -d` to apply:
 
-- `SONARR_API_KEY` / `RADARR_API_KEY` / `JACKETT_API_KEY` / `BAZARR_API_KEY` / `OVERSEERR_API_KEY` — Settings → General → API Key in each web UI.
+- `SONARR_API_KEY` / `RADARR_API_KEY` / `PROWLARR_API_KEY` / `BAZARR_API_KEY` / `OVERSEERR_API_KEY` — Settings → General → API Key in each web UI.
 - `PLEX_TOKEN` — extract from a signed-in browser, see [plexopedia](https://www.plexopedia.com/plex-media-server/general/plex-token/).
 - `ADGUARD_USERNAME` / `ADGUARD_PASSWORD` — set during the AdGuard first-run wizard at `http://host:3000`.
 - `NPM_USERNAME` / `NPM_PASSWORD` — set on first login to Nginx Proxy Manager at `http://host:81`.
