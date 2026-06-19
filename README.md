@@ -5,7 +5,8 @@ Self-hosted home server stack orchestrated with Docker Compose. Bundles the serv
 > **📖 Full documentation lives in [`docs/`](docs/README.md).** This README is the
 > quick reference. For depth see: [Architecture](docs/architecture.md) ·
 > [Deployment](docs/deployment.md) · [User guide (first-run setup)](docs/user-guide.md) ·
-> [Operations](docs/operations.md) · [Configuration reference](docs/configuration.md).
+> [Operations](docs/operations.md) · [Configuration reference](docs/configuration.md) ·
+> [Contributing](docs/contributing.md).
 
 ## Services
 

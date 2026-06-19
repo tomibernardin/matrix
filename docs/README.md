@@ -12,6 +12,7 @@ Full documentation for the Matrix self-hosted stack. The top-level
 | Finish first-run setup of each service (the manual steps) | [User guide](user-guide.md) |
 | Run, update, back up, restore, or troubleshoot it | [Operations](operations.md) |
 | Look up what every `.env` variable does | [Configuration reference](configuration.md) |
+| Change the stack (add a service, the PR/CI workflow) | [Contributing & maintaining](contributing.md) |
 
 ## The 10-minute path
 
