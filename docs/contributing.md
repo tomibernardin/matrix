@@ -43,36 +43,57 @@ bash -n setup.sh && bash -n backup.sh
 
 ## Local SonarQube analysis
 
-A local SonarQube instance is scanned after finishing a task. The CLI isn't
-installed on the workstation, so the scan runs from the official scanner
-container against the host's SonarQube:
+Run after finishing a task:
 
 ```bash
-# SONAR_TOKEN is passed from the environment — never commit it, and never add
-# a sonar-project.properties carrying a token. Generate one under
-# My Account → Security in the SonarQube UI.
-docker run --rm \
-  -v "$(pwd):/usr/src" \
-  -e SONAR_HOST_URL="http://host.docker.internal:9000" \
-  -e SONAR_TOKEN="$SONAR_TOKEN" \
-  sonarsource/sonar-scanner-cli \
-  -Dsonar.projectKey=matrix \
-  -Dsonar.sources=. \
-  -Dsonar.exclusions='**/.git/**' \
-  -Dsonar.working.directory=/tmp/scannerwork
+SONAR_TOKEN=<your-token> ./scripts/sonar-scan.sh
 ```
 
-`-Dsonar.working.directory` points outside the mount so the scan leaves no
-`.scannerwork/` behind in the repo.
+The token comes from the environment and is **never** committed — no
+`sonar-project.properties` carrying a secret. Generate one under
+My Account → Security in the SonarQube UI. Override the server with
+`SONAR_HOST_URL` (default `http://host.docker.internal:9000`, i.e. the host's
+SonarQube as seen from the scanner container).
 
-**Know what this does and doesn't cover.** SonarQube currently indexes **zero**
-files here: it has no Bash analyzer, and `compose.yml` isn't one of its
-supported IaC formats (Dockerfile, Kubernetes, Terraform, CloudFormation are).
-Its text-and-secrets sensor does run, which is the one real signal — but the
-quality gate passing is **not** evidence the code is sound. The checks that
-actually cover this repo are the four CI gates below. Treat the Sonar run as
-bookkeeping until shellcheck results are imported into it via
-`sonar.externalIssuesReportPaths`.
+[`scripts/sonar-scan.sh`](../scripts/sonar-scan.sh) does three things:
+
+1. Runs **shellcheck** (container) over every `*.sh` tracked by git → `json1`.
+2. Converts those findings to SonarQube's generic issue format via
+   [`scripts/shellcheck-to-sonar.py`](../scripts/shellcheck-to-sonar.py).
+3. Runs the scanner (container), importing them with
+   `sonar.externalIssuesReportPaths`.
+
+Reports land in `.sonar/` (gitignored). No local install of `sonar-scanner` or
+`shellcheck` is needed — both run as containers; `docker` and `python3` are the
+only prerequisites.
+
+### Why the shellcheck import exists
+
+SonarQube has no Bash analyzer, and `compose.yml` isn't one of its supported IaC
+formats (Dockerfile, Kubernetes, Terraform and CloudFormation are). Without the
+import it indexes **zero** files and its quality gate is vacuous. Importing
+shellcheck findings creates the file components and attaches the issues, so the
+dashboard finally reflects the part of this repo that is actual code.
+
+Two implementation details worth keeping:
+
+- **`git safe.directory`** is passed into the scanner container. The mount is
+  owned by another UID inside the container; without it git refuses to run,
+  which silently disables `sonar.text.inclusions`.
+- **Issues are reported at line granularity.** Sonar validates text ranges
+  against indexed content, and these files have no language, so column-level
+  ranges risk rejection.
+
+### Known state of the quality gate
+
+The gate currently reports **ERROR** on `new_coverage` (0% < 80%): the only
+natively-analysed code is the Python helper, and it has no tests. That
+condition is the default "Sonar way" policy for application code and is a poor
+fit for an infrastructure repo. Resolve it deliberately — either add tests for
+the helper and import coverage via `sonar.python.coverage.reportPaths`, or scope
+coverage out with `sonar.coverage.exclusions=scripts/**` — rather than reading
+the red gate as a defect in the stack itself. The shell findings are reported
+separately and are all `MINOR` today.
 
 ## CI gates (`.github/workflows/ci.yml`)
 
