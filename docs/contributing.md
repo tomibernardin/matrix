@@ -41,6 +41,39 @@ bash scripts/check-env-drift.sh
 bash -n setup.sh && bash -n backup.sh
 ```
 
+## Local SonarQube analysis
+
+A local SonarQube instance is scanned after finishing a task. The CLI isn't
+installed on the workstation, so the scan runs from the official scanner
+container against the host's SonarQube:
+
+```bash
+# SONAR_TOKEN is passed from the environment — never commit it, and never add
+# a sonar-project.properties carrying a token. Generate one under
+# My Account → Security in the SonarQube UI.
+docker run --rm \
+  -v "$(pwd):/usr/src" \
+  -e SONAR_HOST_URL="http://host.docker.internal:9000" \
+  -e SONAR_TOKEN="$SONAR_TOKEN" \
+  sonarsource/sonar-scanner-cli \
+  -Dsonar.projectKey=matrix \
+  -Dsonar.sources=. \
+  -Dsonar.exclusions='**/.git/**' \
+  -Dsonar.working.directory=/tmp/scannerwork
+```
+
+`-Dsonar.working.directory` points outside the mount so the scan leaves no
+`.scannerwork/` behind in the repo.
+
+**Know what this does and doesn't cover.** SonarQube currently indexes **zero**
+files here: it has no Bash analyzer, and `compose.yml` isn't one of its
+supported IaC formats (Dockerfile, Kubernetes, Terraform, CloudFormation are).
+Its text-and-secrets sensor does run, which is the one real signal — but the
+quality gate passing is **not** evidence the code is sound. The checks that
+actually cover this repo are the four CI gates below. Treat the Sonar run as
+bookkeeping until shellcheck results are imported into it via
+`sonar.externalIssuesReportPaths`.
+
 ## CI gates (`.github/workflows/ci.yml`)
 
 Four jobs must pass to merge:
